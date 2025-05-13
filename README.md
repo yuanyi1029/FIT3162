@@ -14,6 +14,8 @@ python -m venv venv
 ## Step 3: Install Dependencies  
 ```
 pip install -r requirements.txt 
+cd mcunet 
+pip install -e .
 ```
 
 ## Step 4: Run The File  

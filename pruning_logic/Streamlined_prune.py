@@ -24,7 +24,6 @@ from mcunet.utils.mcunet_eval_helper import calib_bn, validate
 from mcunet.utils.arch_visualization_helper import draw_arch
 from mcunet.utils.pytorch_utils import count_peak_activation_size, count_net_flops, count_parameters
 from mcunet.utils.pytorch_modules import SEModule as SEClass 
-from mcunet.utils.pytorch_modules import SEModule as SEClass 
 
 from mcunet.tinynas.nn.networks.mcunets import MobileInvertedResidualBlock
 
@@ -42,23 +41,23 @@ device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 print(device)
 
 #import from Pruning module 
-from Pruning_definitions import (
-        analyze_model,  
-        evaluate, 
-        build_val_data_loader, 
-        get_model_size,
-        plot_weight_distribution,
-        sensitivity_scan,
-        plot_sensitivity_scan,
-        apply_conv2d_sorting,
-        uniform_channel_prune,
-        col_based_prune_reduction,
-        Pruner,
-        AnalyticalEfficiencyPredictor,
-        test_model_finetune,
-        freeze_layers,
-        prune_mb_inverted_block,
-        finetune_model
+from .Pruning_definitions import (
+    analyze_model,  
+    evaluate, 
+    build_val_data_loader, 
+    get_model_size,
+    plot_weight_distribution,
+    sensitivity_scan,
+    plot_sensitivity_scan,
+    apply_conv2d_sorting,
+    uniform_channel_prune,
+    col_based_prune_reduction,
+    Pruner,
+    AnalyticalEfficiencyPredictor,
+    test_model_finetune,
+    freeze_layers,
+    prune_mb_inverted_block,
+    finetune_model
 )
 
 #Prepare Grayscale Data Loading
@@ -165,14 +164,7 @@ def uniform_prune_and_depthwise_collapse(model, ratio):
     model_to_prune = col_based_prune_reduction(model_to_prune, LAYER_TO_PRUNE)
     return model_to_prune 
 
-
-
-
-
-def main_pruning_loop(model, block_level_dict, uniform_pruning_ratio):
-
-
-
+def main_pruning_loop(model, block_level_dict, uniform_pruning_ratio, type):
     #Block level pruning parameters 
     block_level_dict = {
     'blocks.1.mobile_inverted_conv.inverted_bottleneck': 0.8,
@@ -188,11 +180,11 @@ def main_pruning_loop(model, block_level_dict, uniform_pruning_ratio):
     'blocks.11.mobile_inverted_conv.inverted_bottleneck.conv': 0.5
     }
 
+    if type in ["BOTH", "BLOCK"]: 
+        pruned_model = prune_multiple_blocks(model, block_level_dict)
 
-    pruned_model = prune_multiple_blocks(model, block_level_dict)
-
-    pruned_model = uniform_prune_and_depthwise_collapse(pruned_model, uniform_pruning_ratio)
-
+    elif type in ["BOTH", "UNIFORM"]:
+        pruned_model = uniform_prune_and_depthwise_collapse(pruned_model, uniform_pruning_ratio)
 
     return pruned_model
 
