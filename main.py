@@ -35,6 +35,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 
+from pruning_logic.Pruning_definitions import get_model_size
+
 def identify_model_blocks(model):
     block_names = []
     try:
@@ -85,7 +87,7 @@ if uploaded_file:
             # Identify model blocks
             blocks = identify_model_blocks(model)
 
-            # st.write(blocks)
+            # st.write(blocks)x
             
             # Create a container for block-specific sliders
             blocks_container = st.container()
@@ -122,8 +124,11 @@ if uploaded_file:
             channel_pruning_ratio = st.slider("Channel Pruning Ratio", 0.0, 0.9, 0.5, 0.01)
         
         # Additional parameters
+
+        
         st.subheader("Additional Parameters")
         fine_tune = st.checkbox("Fine-tune after pruning")
+        #parameter for block-level finetuning 
         fine_tune_epochs = 0
         if fine_tune:
             fine_tune_epochs = st.number_input("Fine-tuning epochs", 1, 100, 5)
@@ -182,20 +187,31 @@ if uploaded_file:
                     st.write(f"Pruning with: {', '.join(selected_methods)}")
                     
                     # Calculate original model stats
-                    original_params = count_parameters(model) / 1e6  # Convert to millions
-                    original_size_mb = original_params * 4 / 1024  # Rough conversion to MB
+                    dummy_input = (1, 1, 96, 96)
+
+                    original_params = count_parameters(model)
+                    original_size_mb = get_model_size(model)  # in mb 
+                    original_flops = count_net_flops(model, dummy_input)
+                    original_peak_act = count_peak_activation_size(model, dummy_input)
+
                     
                     # Execute the pruning function with appropriate parameters
                     pruned_model = main_pruning_loop(
                         model=model, 
                         block_level_dict=block_pruning_ratios, 
                         uniform_pruning_ratio=channel_pruning_ratio,
-                        type=pruning_type
+                        type=pruning_type,
+                        fine_tune_epochs=fine_tune_epochs
                     )
                     
                     # Calculate pruned model stats
-                    pruned_params = count_parameters(pruned_model) / 1e6  # Convert to millions
-                    pruned_size_mb = pruned_params * 4 / 1024  # Rough conversion to MB
+                    pruned_params = count_parameters(pruned_model)
+                    pruned_size_mb = get_model_size(pruned_model)
+                    pruned_flops = count_net_flops(pruned_model, dummy_input)
+                    pruned_peak_act = count_peak_activation_size(pruned_model, dummy_input)
+
+
+
                     size_reduction_percent = ((original_size_mb - pruned_size_mb) / original_size_mb) * 100
                     
                     # Fine-tuning if selected
@@ -221,9 +237,14 @@ if uploaded_file:
                     col1, col2 = st.columns(2)
                     with col1:
                         st.metric("Original Parameters", f"{original_params:.2f}M")
+                        st.metric("Original FLOPs", f"{original_flops / 1e6:.2f} MFLOPs")
+                        st.metric("Original Peak Activation", f"{original_peak_act / 1e6:.2f} MB")
                     with col2:
                         st.metric("Pruned Parameters", f"{pruned_params:.2f}M", 
                                 delta=f"{pruned_params - original_params:.2f}M")
+                        st.metric("Pruned FLOPs", f"{pruned_flops / 1e6:.2f} MFLOPs", delta=f"{(pruned_flops - original_flops) / 1e6:.2f} MFLOPs")
+                        st.metric("Pruned Peak Activation", f"{pruned_peak_act / 1e6:.2f} MB", 
+                                delta=f"{(pruned_peak_act - original_peak_act) / 1e6:.2f} MB")
                     
                     # Download pruned model
                     pruned_model_path = os.path.join(tempfile.gettempdir(), "pruned_model.pth")

@@ -107,7 +107,7 @@ def prepare_dataloaders(data_dir, image_size=96, batch_size=32, seed=42):
 train_loader, val_loader, test_loader = prepare_dataloaders("person_detection_validation")
 
 
-def prune_multiple_blocks(model, target_blocks_dict):
+def prune_multiple_blocks(model, target_blocks_dict, fine_tune_epochs=0):
     pruned_block_model = copy.deepcopy(model)
  
     block_class = MobileInvertedResidualBlock #residual block class 
@@ -126,14 +126,15 @@ def prune_multiple_blocks(model, target_blocks_dict):
             verbose=True
         )
 
-        #Finetune 
-        pruned_block_model = finetune_model(
-            model=pruned_block_model,
-            train_loader=train_loader,
-            val_loader=val_loader,
-            device=device,
-            num_epochs = 5
-        )
+        #Finetune only if block was pruned (ratio>0) and fine_tune_epochs>0
+        if fine_tune_epochs > 0 and pruning_ratio>0:
+            pruned_block_model = finetune_model(
+                model=pruned_block_model,
+                train_loader=train_loader,
+                val_loader=val_loader,
+                device=device,
+                num_epochs = fine_tune_epochs
+            )
         
 
     return pruned_block_model
@@ -164,24 +165,14 @@ def uniform_prune_and_depthwise_collapse(model, ratio):
     model_to_prune = col_based_prune_reduction(model_to_prune, LAYER_TO_PRUNE)
     return model_to_prune 
 
-def main_pruning_loop(model, block_level_dict, uniform_pruning_ratio, type):
-    #Block level pruning parameters 
-    block_level_dict = {
-    'blocks.1.mobile_inverted_conv.inverted_bottleneck': 0.8,
-    'blocks.2.mobile_inverted_conv.inverted_bottleneck.conv': 0.9,
-    'blocks.3.mobile_inverted_conv.inverted_bottleneck.conv': 0.5,
-    'blocks.4.mobile_inverted_conv.inverted_bottleneck.conv': 0.6,
-    'blocks.5.mobile_inverted_conv.inverted_bottleneck.conv': 0.4,
-    'blocks.6.mobile_inverted_conv.inverted_bottleneck.conv': 0.4,
-    'blocks.7.mobile_inverted_conv.inverted_bottleneck.conv': 0.9,
-    'blocks.8.mobile_inverted_conv.inverted_bottleneck.conv': 0.4,
-    'blocks.9.mobile_inverted_conv.inverted_bottleneck.conv': 0.1,
-    'blocks.10.mobile_inverted_conv.inverted_bottleneck.conv': 0.1,
-    'blocks.11.mobile_inverted_conv.inverted_bottleneck.conv': 0.5
-    }
 
+
+def main_pruning_loop(model, block_level_dict, uniform_pruning_ratio, fine_tune_epochs, type):
+    
+    #Block level pruning parameters 
     if type in ["BOTH", "BLOCK"]: 
-        pruned_model = prune_multiple_blocks(model, block_level_dict)
+        #fine_tune_epochs controls how many times to finetune between the pruning of each block
+        pruned_model = prune_multiple_blocks(model, block_level_dict, fine_tune_epochs)
 
     elif type in ["BOTH", "UNIFORM"]:
         pruned_model = uniform_prune_and_depthwise_collapse(pruned_model, uniform_pruning_ratio)
