@@ -151,7 +151,7 @@ if uploaded_file:
                     # Calculate original model stats
                     dummy_input = (1, 1, 96, 96)
 
-                    original_params = count_parameters(model)
+                    original_params = sum(p.numel() * p.element_size() for p in model.parameters())
                     original_size_mb = get_model_size(model)  # in mb 
                     original_flops = count_net_flops(model, dummy_input)
                     original_peak_act = count_peak_activation_size(model, dummy_input)
@@ -166,7 +166,7 @@ if uploaded_file:
                     )
                     
                     # Calculate pruned model stats
-                    pruned_params = count_parameters(pruned_model)
+                    pruned_params = sum(p.numel() * p.element_size() for p in pruned_model.parameters())
                     pruned_size_mb = get_model_size(pruned_model)
                     pruned_flops = count_net_flops(pruned_model, dummy_input)
                     pruned_peak_act = count_peak_activation_size(pruned_model, dummy_input)
@@ -197,12 +197,12 @@ if uploaded_file:
                     # For now, we'll use placeholder values to maintain the UI
                     col1, col2 = st.columns(2)
                     with col1:
-                        st.metric("Original Parameters", f"{original_params:.2f}M")
+                        st.metric("Original Parameters", f"{original_params:.2f}")
                         st.metric("Original FLOPs", f"{original_flops / 1e6:.2f} MFLOPs")
                         st.metric("Original Peak Activation", f"{original_peak_act / 1e6:.2f} MB")
                     with col2:
-                        st.metric("Pruned Parameters", f"{pruned_params:.2f}M", 
-                                delta=f"{pruned_params - original_params:.2f}M")
+                        st.metric("Pruned Parameters", f"{pruned_params:.2f}", 
+                                delta=f"{pruned_params - original_params:.2f}")
                         st.metric("Pruned FLOPs", f"{pruned_flops / 1e6:.2f} MFLOPs", delta=f"{(pruned_flops - original_flops) / 1e6:.2f} MFLOPs")
                         st.metric("Pruned Peak Activation", f"{pruned_peak_act / 1e6:.2f} MB", 
                                 delta=f"{(pruned_peak_act - original_peak_act) / 1e6:.2f} MB")
