@@ -46,7 +46,7 @@ def identify_model_blocks(model):
                 # Match only direct children like "blocks.0", "blocks.1", ...
                 if len(parts) == 2 and parts[0] == "blocks" and parts[1].isdigit():
                     block_names.append(name)
-
+        
         return sorted(block_names, key=lambda x: int(x.split(".")[1]))
 
     except Exception as e:
@@ -86,8 +86,6 @@ if uploaded_file:
             
             # Identify model blocks
             blocks = identify_model_blocks(model)
-
-            # st.write(blocks)x
             
             # Create a container for block-specific sliders
             blocks_container = st.container()
@@ -113,9 +111,6 @@ if uploaded_file:
                                 0.0, 0.9, 0.5, 0.01,
                                 key=f"block_{block}"
                             )
-
-
-            st.write(block_pruning_ratios)
         
         # Uniform Channel Pruning Parameters
         channel_pruning_ratio = 0.0
@@ -137,39 +132,6 @@ if uploaded_file:
         if st.button("Prune Model"):
             with st.spinner("Pruning model..."):
                 try:
-                    # # Display the selected pruning methods
-                    # selected_methods = []
-                    # if block_pruning:
-                    #     selected_methods.append("Block Level Pruning")
-                    # if channel_pruning:
-                    #     selected_methods.append("Uniform Channel Pruning and Depth-wise Channel Pruning")
-                    
-                    # st.write(f"Pruning with: {', '.join(selected_methods)}")
-                    
-                    # if block_pruning:
-                    #     # Pass block_pruning_ratios to your function
-                    #     st.write("Block ratios selected:", block_pruning_ratios)
-                    
-                    # if channel_pruning:
-                    #     # Pass channel_pruning_ratio to your function
-                    #     st.write(f"Channel pruning ratio: {channel_pruning_ratio}")
-                    
-                    # # Mock model for demonstration
-                    # pruned_model = nn.Sequential(
-                    #     nn.Linear(10, 5),
-                    #     nn.ReLU(),
-                    #     nn.Linear(5, 2)
-                    # )
-
-                    # # Mocked stats
-                    # stats = {
-                    #     "original_size_mb": random.uniform(5.0, 10.0),
-                    #     "pruned_size_mb": random.uniform(2.0, 4.0),
-                    #     "size_reduction_percent": random.uniform(50.0, 70.0),
-                    #     "accuracy_before": random.uniform(80.0, 90.0),
-                    #     "accuracy_after": random.uniform(78.0, 88.0)
-                    # }
-
                      # Display the selected pruning methods
                     selected_methods = []
                     pruning_type = ""
@@ -194,7 +156,6 @@ if uploaded_file:
                     original_flops = count_net_flops(model, dummy_input)
                     original_peak_act = count_peak_activation_size(model, dummy_input)
 
-                    
                     # Execute the pruning function with appropriate parameters
                     pruned_model = main_pruning_loop(
                         model=model, 

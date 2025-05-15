@@ -175,7 +175,7 @@ def main_pruning_loop(model, block_level_dict, uniform_pruning_ratio, fine_tune_
         pruned_model = prune_multiple_blocks(model, block_level_dict, fine_tune_epochs)
 
     elif type in ["BOTH", "UNIFORM"]:
-        pruned_model = uniform_prune_and_depthwise_collapse(pruned_model, uniform_pruning_ratio)
+        pruned_model = uniform_prune_and_depthwise_collapse(model, uniform_pruning_ratio)
 
     return pruned_model
 
