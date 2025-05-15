@@ -172,7 +172,7 @@ if uploaded_file:
                     # Calculate original model stats
                     dummy_input = (1, 1, 96, 96)
 
-                    original_params = count_parameters(model)
+                    original_params = sum(p.numel() * p.element_size() for p in model.parameters())
                     original_size_mb = get_model_size(model)  # in mb 
                     original_flops = count_net_flops(model, dummy_input)
                     original_peak_act = count_peak_activation_size(model, dummy_input)
@@ -189,7 +189,7 @@ if uploaded_file:
                         )
                         
                         # Calculate pruned model stats
-                        pruned_params = count_parameters(pruned_model)
+                        pruned_params = sum(p.numel() * p.element_size() for p in pruned_model.parameters())
                         pruned_size_mb = get_model_size(pruned_model)
                         pruned_flops = count_net_flops(pruned_model, dummy_input)
                         pruned_peak_act = count_peak_activation_size(pruned_model, dummy_input)
@@ -262,7 +262,7 @@ if uploaded_file:
                     with col1:
                         st.metric("Size", f"{original_size_mb:.2f} MB")
                     with col2:
-                        st.metric("Parameters", f"{original_params:.2f}M")
+                        st.metric("Parameters", f"{original_params:.2f}")
                     with col3:
                         st.metric("FLOPs", f"{original_flops / 1e6:.2f} MFLOPs")
                     
@@ -274,7 +274,7 @@ if uploaded_file:
                             st.metric("Size", f"{pruned_size_mb:.2f} MB", 
                                     delta=f"-{size_reduction_percent:.1f}%")
                         with col2:
-                            st.metric("Parameters", f"{pruned_params:.2f}M", 
+                            st.metric("Parameters", f"{pruned_params:.2f}", 
                                     delta=f"{((pruned_params - original_params) / original_params) * 100:.1f}%")
                         with col3:
                             st.metric("FLOPs", f"{pruned_flops / 1e6:.2f} MFLOPs", 
