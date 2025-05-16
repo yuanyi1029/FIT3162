@@ -57,7 +57,8 @@ from .Pruning_definitions import (
     test_model_finetune,
     freeze_layers,
     prune_mb_inverted_block,
-    finetune_model
+    finetune_model,
+    run_distillation
 )
 
 #Prepare Grayscale Data Loading
@@ -166,14 +167,23 @@ def uniform_prune_and_depthwise_collapse(model, ratio):
     return model_to_prune 
 
 
+def test_model(model, device):
+    sample_test = []
+    for i, batch in enumerate(test_loader):
+        if i >= 2:
+            break
+        sample_test.append(batch)
+    return evaluate(model,sample_test, device, verbose=True)
 
-def main_pruning_loop(model, block_level_dict, uniform_pruning_ratio, fine_tune_epochs, type):
+
+def main_pruning_loop(model, block_level_dict, uniform_pruning_ratio, block_fine_tune_epochs, type):
     
     pruned_model = model 
     #Block level pruning parameters 
     if type in ["BOTH", "BLOCK"]: 
         #fine_tune_epochs controls how many times to finetune between the pruning of each block
-        pruned_model = prune_multiple_blocks(pruned_model, block_level_dict, fine_tune_epochs)
+        pruned_model = prune_multiple_blocks(pruned_model, block_level_dict, block_fine_tune_epochs)
+
 
     if type in ["BOTH", "UNIFORM"]:
         pruned_model = uniform_prune_and_depthwise_collapse(pruned_model, uniform_pruning_ratio)
@@ -181,6 +191,8 @@ def main_pruning_loop(model, block_level_dict, uniform_pruning_ratio, fine_tune_
     return pruned_model
 
 
+def main_finetune_model(model, epochs, device):
+    finetune_model(model, train_loader, val_loader, device, lr=1e-4, weight_decay=3e-5, num_epochs=epochs,patience=epochs)
 
-
-
+def knowledge_distillation_prune(teacher_model, student_model, num_epochs, device):
+    return  run_distillation(teacher_model, student_model, train_loader, num_epochs, device)
