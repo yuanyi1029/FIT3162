@@ -156,6 +156,11 @@ def quantize_model(pth_model_path, tflite_output_path, dataset_path="person_dete
         print(f"Error during quantization: {e}")
         return False
 
-    
-if __name__ == "__main__":
-    quantize_model("compressed.pth", "compressed.tflite", dataset_path="person_detection_validation")
+def get_tflite_model_size(tflite_model_path):
+    """Returns the TFLite model size in MB."""
+    if os.path.exists(tflite_model_path):
+        size_mb = os.path.getsize(tflite_model_path) / (1024 * 1024)
+        return round(size_mb, 2)
+    else:
+        print(f"File {tflite_model_path} does not exist.")
+        return 0

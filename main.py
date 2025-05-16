@@ -36,7 +36,7 @@ import numpy as np
 import math
 
 from pruning_logic.Pruning_definitions import get_model_size
-from quantization_logic.quantization import quantize_model
+from quantization_logic.quantization import quantize_model, get_tflite_model_size
 
 def identify_model_blocks(model):
     block_names = []
@@ -246,7 +246,7 @@ if uploaded_file:
                             st.success("Quantization completed successfully!")
                             
                             # Calculate size of quantized model
-                            quantized_size = os.path.getsize(quantized_model_path) / (1024 * 1024)  # Convert to MB
+                            quantized_size = get_tflite_model_size(quantized_model_path)
                             quantized_size_reduction = ((original_size_mb - quantized_size) / original_size_mb) * 100
                             
                         except Exception as e:
