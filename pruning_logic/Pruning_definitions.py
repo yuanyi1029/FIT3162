@@ -251,25 +251,25 @@ def finetune_model(
         epoch_train_acc = train_correct / train_total * 100
 
         # --- Validation ---
-        model.eval()
-        val_loss, val_correct, val_total = 0.0, 0, 0
-        with torch.no_grad():
-            for inputs, labels in tqdm(val_loader, desc=f"Epoch {epoch+1}/{num_epochs} [Val]"):
-                inputs, labels = inputs.to(device), labels.to(device)
-                outputs = model(inputs)
-                loss = criterion(outputs, labels)
+        # model.eval()
+        # val_loss, val_correct, val_total = 0.0, 0, 0
+        # with torch.no_grad():
+        #     for inputs, labels in tqdm(val_loader, desc=f"Epoch {epoch+1}/{num_epochs} [Val]"):
+        #         inputs, labels = inputs.to(device), labels.to(device)
+        #         outputs = model(inputs)
+        #         loss = criterion(outputs, labels)
 
-                val_loss += loss.item() * inputs.size(0)
-                _, predicted = torch.max(outputs, 1)
-                val_total += labels.size(0)
-                val_correct += (predicted == labels).sum().item()
+        #         val_loss += loss.item() * inputs.size(0)
+        #         _, predicted = torch.max(outputs, 1)
+        #         val_total += labels.size(0)
+        #         val_correct += (predicted == labels).sum().item()
 
-        epoch_val_loss = val_loss / len(val_loader.dataset)
-        epoch_val_acc = val_correct / val_total * 100
-        current_lr = optimizer.param_groups[0]['lr']
+        # epoch_val_loss = val_loss / len(val_loader.dataset)
+        # epoch_val_acc = val_correct / val_total * 100
+        # current_lr = optimizer.param_groups[0]['lr']
 
-        print(f"Epoch {epoch+1}: Train Loss={epoch_train_loss:.4f}, Acc={epoch_train_acc:.2f}% | "
-              f"Val Loss={epoch_val_loss:.4f}, Acc={epoch_val_acc:.2f}% | LR={current_lr:.6f}")
+        print(f"Epoch {epoch+1}: Train Loss={epoch_train_loss:.4f}, Acc={epoch_train_acc:.2f}%")
+            #   f"Val Loss={epoch_val_loss:.4f}, Acc={epoch_val_acc:.2f}% | LR={current_lr:.6f}")
 
         # if epoch_val_acc > best_val_acc:
         #     best_val_acc = epoch_val_acc
@@ -2120,3 +2120,95 @@ def run_uniform_pruning_experiments(
         })
 
     return pd.DataFrame(results)
+
+
+
+
+
+import copy
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+from tqdm import tqdm
+
+
+def run_distillation(teacher_model, student_model, train_loader, num_epochs, device): 
+    # --- Configuration ---
+    TEMPERATURE = 4.0
+    ALPHA = 0.3
+    LEARNING_RATE_DISTILL = 1e-3
+    # LEARNING_RATE_FINETUNE = 1e-4 # Not used in this snippet
+    # BATCH_SIZE = 32 # train_loader has its own batch_size
+    # DO_FINETUNING = True # Not used in this snippet
+    DEVICE = device # Use the passed device
+
+    # Load models
+    teacher_model.eval()
+    teacher_model.to(DEVICE) # Ensure teacher is on the correct device
+    for param in teacher_model.parameters():
+        param.requires_grad = False
+
+    student_model_copy = copy.deepcopy(student_model)
+    student_model_copy.to(DEVICE) # Ensure student is on the correct device
+    
+    print("\n--- Starting Knowledge Distillation ---")
+    criterion_hard = nn.CrossEntropyLoss()
+    # For KLDivLoss, student output should be log_softmax and teacher output should be softmax
+    criterion_soft = nn.KLDivLoss(reduction='batchmean', log_target=False) 
+    optimizer_student = optim.Adam(student_model_copy.parameters(), lr=LEARNING_RATE_DISTILL)
+
+    # --- Distillation Training ---
+    for epoch in range(num_epochs):
+        student_model_copy.train()
+        running_loss, running_hard_loss, running_soft_loss = 0.0, 0.0, 0.0
+        
+        progress_bar_desc = f"Distill Epoch {epoch+1}/{num_epochs}"
+
+
+        progress_bar = tqdm(train_loader, desc=progress_bar_desc)
+
+        for inputs, labels in progress_bar:
+            inputs, labels = inputs.to(DEVICE), labels.to(DEVICE)
+            optimizer_student.zero_grad()
+
+            # Teacher provides soft targets
+            with torch.no_grad():
+                teacher_logits = teacher_model(inputs)
+            
+            # Student predictions
+            student_logits = student_model_copy(inputs)
+
+            # Soft loss (Distillation loss)
+            # Teacher outputs are softened
+            teacher_soft_targets = F.softmax(teacher_logits / TEMPERATURE, dim=1)
+            # Student outputs are log_softmax for KLDivLoss
+            student_log_soft_outputs = F.log_softmax(student_logits / TEMPERATURE, dim=1)
+            
+            distill_loss = criterion_soft(student_log_soft_outputs, teacher_soft_targets) * (TEMPERATURE ** 2)
+            
+            # Hard loss (Standard cross-entropy with true labels)
+            hard_loss = criterion_hard(student_logits, labels)
+            
+            combined_loss = ALPHA * hard_loss + (1 - ALPHA) * distill_loss
+            
+            combined_loss.backward()
+            optimizer_student.step()
+
+            running_loss += combined_loss.item() * inputs.size(0)
+            running_hard_loss += hard_loss.item() * inputs.size(0)
+            running_soft_loss += distill_loss.item() * inputs.size(0)
+            
+            progress_bar.set_postfix({
+                'Loss': combined_loss.item(),
+                'HardL': hard_loss.item(),
+                'SoftL': distill_loss.item()
+            })
+        
+        epoch_loss = running_loss / len(train_loader.dataset)
+        epoch_hard_loss = running_hard_loss / len(train_loader.dataset)
+        epoch_soft_loss = running_soft_loss / len(train_loader.dataset)
+        print(f"Epoch {epoch+1} Distill Stats: Avg Loss: {epoch_loss:.4f}, Avg HardL: {epoch_hard_loss:.4f}, Avg SoftL: {epoch_soft_loss:.4f}")
+
+    print("Distillation training complete.")
+    return student_model_copy

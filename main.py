@@ -24,7 +24,6 @@ from mcunet.tinynas.elastic_nn.networks.ofa_mcunets import OFAMCUNets
 from mcunet.utils.mcunet_eval_helper import calib_bn, validate
 from mcunet.utils.pytorch_utils import count_peak_activation_size, count_net_flops, count_parameters
 from mcunet.tinynas.nn.networks.mcunets import MobileInvertedResidualBlock
-from pruning_logic.Streamlined_prune import main_pruning_loop 
 
 from matplotlib import pyplot as plt
 import warnings
@@ -37,6 +36,11 @@ import math
 
 from pruning_logic.Pruning_definitions import get_model_size
 from quantization_logic.quantization import quantize_model, get_tflite_model_size
+from pruning_logic.Streamlined_prune import main_pruning_loop, knowledge_distillation_prune, main_finetune_model
+
+
+# DEVICE = torch.device('cpu')
+DEVICE = torch.device('mps')
 
 def identify_model_blocks(model):
     block_names = []
@@ -75,10 +79,11 @@ if uploaded_file:
     # Using checkboxes for downsizing methods
     block_pruning = st.checkbox("Block Level Pruning")
     channel_pruning = st.checkbox("Uniform Channel Pruning and Depth-wise Channel Pruning")
+    knowledge_distillation = st.checkbox("Knowledge Distillation") 
     quantization = st.checkbox("Apply Quantization")
     
     # Ensure at least one method is selected
-    if not block_pruning and not channel_pruning and not quantization:
+    if not block_pruning and not channel_pruning and not quantization and not knowledge_distillation:
         st.warning("Please select at least one optimization method.")
     else:
         # Block Level Pruning Parameters
@@ -120,9 +125,19 @@ if uploaded_file:
             st.write("### Uniform Channel Pruning and Depth-wise Channel Pruning Parameters")
             channel_pruning_ratio = st.slider("Channel Pruning Ratio", 0.0, 0.9, 0.5, 0.01)
         
+
+          # Knowledge Distillation Parameters
+        teacher_model_file = None
+        distillation_epochs = 5 # Default
+        if knowledge_distillation:
+            st.write("### Knowledge Distillation Parameters")
+            teacher_model_file = st.file_uploader("Upload Teacher Model (.pth) for Distillation", type=["pth"], key="teacher_model")
+            distillation_epochs = st.number_input("Distillation Epochs", 1, 100, 10, key="distill_epochs")
+
+
         # Additional parameters
         st.subheader("Additional Parameters")
-        fine_tune = st.checkbox("Fine-tune after pruning")
+        fine_tune = st.checkbox("Fine-tune after pruning for each block")
         #parameter for block-level finetuning 
         fine_tune_epochs = 0
         if fine_tune:
@@ -164,7 +179,10 @@ if uploaded_file:
                         pruning_type = "UNIFORM"
                         selected_methods = ["Uniform Channel Pruning and Depth-wise Channel Pruning"]
                     
-                    if quantization:
+                    if knowledge_distillation:
+                        selected_methods.append("Knowledge Distillation")
+
+                    if quantization:    
                         selected_methods.append(f"Quantization ({quantization_type})")
                     
                     st.write(f"Optimizing with: {', '.join(selected_methods)}")
@@ -187,6 +205,8 @@ if uploaded_file:
                             type=pruning_type,
                             fine_tune_epochs=fine_tune_epochs
                         )
+
+
                         
                         # Calculate pruned model stats
                         pruned_params = sum(p.numel() * p.element_size() for p in pruned_model.parameters())
@@ -204,17 +224,64 @@ if uploaded_file:
                         pruned_peak_act = original_peak_act
                         size_reduction_percent = 0.0
                     
+                    
+                    
                     # Fine-tuning if selected (only if pruning was applied)
                     if fine_tune and (block_pruning or channel_pruning):
                         st.write(f"Fine-tuning for {fine_tune_epochs} epochs...")
                         # Add fine-tuning code here if needed
                         # For demonstration, we'll just show a progress bar
+                        main_finetune_model(model, fine_tune_epochs, DEVICE)
                         progress_bar = st.progress(0)
                         for i in range(fine_tune_epochs):
                             # Simulate fine-tuning process
                             for j in range(10):
                                 progress_bar.progress((i * 10 + j + 1) / (fine_tune_epochs * 10))
                                 time.sleep(0.1)
+                    
+                    # --- Apply Knowledge Distillation (if selected) ---
+                    # This happens after pruning and before quantization
+                    distilled_model = pruned_model # Model to be distilled is the (potentially) pruned model
+                    
+                    if knowledge_distillation:
+                        if not teacher_model_file:
+                            st.error("Teacher model file not uploaded, but Knowledge Distillation was selected.")
+                            st.stop()
+                        
+                        st.write(f"Starting Knowledge Distillation for {distillation_epochs} epochs...")
+                        
+                        # Load teacher model
+                        teacher_model_path_tmp = ""
+                        with tempfile.NamedTemporaryFile(delete=False, suffix='.pth') as tmp_teacher_file:
+                            tmp_teacher_file.write(teacher_model_file.getvalue())
+                            teacher_model_path_tmp = tmp_teacher_file.name
+                        
+                        teacher_model = torch.load(teacher_model_path_tmp, map_location=DEVICE)
+                        teacher_model.to(DEVICE)
+                        teacher_model.eval()
+
+                        # Student model is 'distilled_model' (which is 'pruned_model' at this point)
+                        distilled_model.to(DEVICE)
+
+                        # Call distillation
+                        distilled_model_output = knowledge_distillation_prune(
+                            teacher_model=teacher_model,
+                            student_model=distilled_model,
+                            num_epochs=distillation_epochs,
+                            device=DEVICE 
+                        )
+                        distilled_model = distilled_model_output # Update model reference
+                        st.success("Knowledge Distillation complete.")
+                        if os.path.exists(teacher_model_path_tmp):
+                            os.unlink(teacher_model_path_tmp)
+                    
+                    # The model to be saved/quantized is now 'distilled_model'
+                    # (which could be original, pruned, or pruned-then-distilled)
+                    final_model_to_process = distilled_model 
+                    final_model_to_process.to(DEVICE) # Ensure it's on the correct device
+
+                
+
 
                     # Save the pruned model - save the full model for quantization
                     pruned_model_path = os.path.join(tempfile.gettempdir(), "pruned_model.pth")

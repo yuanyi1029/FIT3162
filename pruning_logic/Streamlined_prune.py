@@ -57,7 +57,8 @@ from .Pruning_definitions import (
     test_model_finetune,
     freeze_layers,
     prune_mb_inverted_block,
-    finetune_model
+    finetune_model,
+    run_distillation
 )
 
 #Prepare Grayscale Data Loading
@@ -167,6 +168,7 @@ def uniform_prune_and_depthwise_collapse(model, ratio):
 
 
 
+
 def main_pruning_loop(model, block_level_dict, uniform_pruning_ratio, fine_tune_epochs, type):
     
     pruned_model = model 
@@ -179,3 +181,10 @@ def main_pruning_loop(model, block_level_dict, uniform_pruning_ratio, fine_tune_
         pruned_model = uniform_prune_and_depthwise_collapse(pruned_model, uniform_pruning_ratio)
 
     return pruned_model
+
+
+def main_finetune_model(model, epochs, device):
+    finetune_model(model, train_loader, val_loader, device, lr=1e-4, weight_decay=3e-5, num_epochs=epochs,patience=epochs)
+
+def knowledge_distillation_prune(teacher_model, student_model, num_epochs, device):
+    return  run_distillation(teacher_model, student_model, train_loader, num_epochs, device)
