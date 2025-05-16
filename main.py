@@ -206,6 +206,7 @@ if uploaded_file:
                     # original_acc = test_model(model, DEVICE)
                     original_acc =  random.randint(80, 95)
 
+
                     # Execute the pruning function with appropriate parameters if pruning is selected
                     if block_pruning or channel_pruning:
                         st.write("Applying pruning...")
@@ -252,9 +253,25 @@ if uploaded_file:
                                 progress_bar.progress((i * 10 + j + 1) / (channel_fine_tune * 10))
                                 time.sleep(0.1) 
                     
+
                     # --- Apply Knowledge Distillation (if selected) ---
                     # This happens after pruning and before quantization
                     distilled_model = pruned_model # Model to be distilled is the (potentially) pruned model
+
+                    # If we had actual accuracy measurements, we would display them here
+                    # For now, we'll use placeholder values to maintain the UI
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("Original Parameters", f"{original_params:.2f}")
+                        st.metric("Original FLOPs", f"{original_flops / 1e6:.2f} MFLOPs")
+                        st.metric("Original Peak Activation", f"{original_peak_act / 1e6:.2f} MB")
+                    with col2:
+                        st.metric("Pruned Parameters", f"{pruned_params:.2f}", 
+                                delta=f"{pruned_params - original_params:.2f}")
+                        st.metric("Pruned FLOPs", f"{pruned_flops / 1e6:.2f} MFLOPs", delta=f"{(pruned_flops - original_flops) / 1e6:.2f} MFLOPs")
+                        st.metric("Pruned Peak Activation", f"{pruned_peak_act / 1e6:.2f} MB", 
+                                delta=f"{(pruned_peak_act - original_peak_act) / 1e6:.2f} MB")
+
                     
                     if knowledge_distillation:
                         if not teacher_model_file:

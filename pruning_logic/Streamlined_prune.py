@@ -184,6 +184,7 @@ def main_pruning_loop(model, block_level_dict, uniform_pruning_ratio, block_fine
         #fine_tune_epochs controls how many times to finetune between the pruning of each block
         pruned_model = prune_multiple_blocks(pruned_model, block_level_dict, block_fine_tune_epochs)
 
+
     if type in ["BOTH", "UNIFORM"]:
         pruned_model = uniform_prune_and_depthwise_collapse(pruned_model, uniform_pruning_ratio)
 
