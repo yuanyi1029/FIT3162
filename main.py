@@ -214,12 +214,13 @@ if uploaded_file:
                             model=model, 
                             block_level_dict=block_pruning_ratios, 
                             uniform_pruning_ratio=channel_pruning_ratio,
-                            type=pruning_type,
-                            block_fine_tune_epochs=block_fine_tune_epochs
+                            block_fine_tune_epochs=block_fine_tune_epochs,
+                            channel_fine_tune_epochs=channel_fine_tune_epochs,
+                            device=DEVICE,
+                            type=pruning_type
                         )
 
 
-                        
                         # Calculate pruned model stats
                         pruned_params = sum(p.numel() * p.element_size() for p in pruned_model.parameters())
                         pruned_size_mb = get_model_size(pruned_model)
@@ -237,22 +238,6 @@ if uploaded_file:
                         size_reduction_percent = 0.0
                         pruned_acc = original_acc -  random.randint(0, 10)
                         # pruned_acc = test_model(pruned_model, DEVICE)
-
-                    
-                    
-                    # Fine-tuning if selected (only if pruning was applied)
-                    if channel_fine_tune and (block_pruning or channel_pruning):
-                        st.write(f"Fine-tuning for {channel_fine_tune} epochs...")
-                        # Add fine-tuning code here if needed
-                        # For demonstration, we'll just show a progress bar
-                        main_finetune_model(model, channel_fine_tune, DEVICE)
-                        progress_bar = st.progress(0)
-                        for i in range(channel_fine_tune):
-                            # Simulate fine-tuning process
-                            for j in range(10):
-                                progress_bar.progress((i * 10 + j + 1) / (channel_fine_tune * 10))
-                                time.sleep(0.1) 
-                    
 
                     # --- Apply Knowledge Distillation (if selected) ---
                     # This happens after pruning and before quantization
@@ -295,9 +280,6 @@ if uploaded_file:
                     final_model_to_process = distilled_model 
                     pruned_acc = test_model(final_model_to_process, DEVICE)
                     final_model_to_process.to(DEVICE) # Ensure it's on the correct device
-
-                
-
 
                     # Save the pruned model - save the full model for quantization
                     pruned_model_path = os.path.join(tempfile.gettempdir(), "pruned_model.pth")
