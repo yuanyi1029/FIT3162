@@ -240,6 +240,8 @@ if uploaded_file:
                                             0.0, 0.9, 0.5, 0.05,
                                             key=f"block_{block}"
                                         )
+                            
+                            st.info("💡 Block Pruning reduces the number of output channels by a fixed amount for each block. It removes the **least important** channels based on Batch Normalisation gamma importance.")
 
                     # Channel pruning settings
                     if st.session_state.channel_pruning:
@@ -253,7 +255,7 @@ if uploaded_file:
                                 0.05
                             )
 
-                            st.info("Channel pruning uniformly reduces model width across all layers. It also includes Depthwise merging, where depthwise layer groups are merged together for greater compression")
+                            st.info("💡 Channel pruning uniformly reduces model width across all layers. It also includes Depthwise merging, where depthwise layer groups are merged together for greater compression.")
 
                     # Fine-tuning settings - only show if any pruning is selected
                     if st.session_state.block_pruning or st.session_state.channel_pruning:
@@ -273,6 +275,8 @@ if uploaded_file:
                                             "Block Pruning Fine-tuning Epochs", 1, 20,
                                             st.session_state.block_fine_tune_epochs
                                         )
+                            
+                                
 
                             with col2:
                                 if st.session_state.channel_pruning:
@@ -288,7 +292,7 @@ if uploaded_file:
                                             st.session_state.channel_fine_tune_epochs
                                         )
 
-                            st.info("Fine-tuning helps restore accuracy after pruning by retraining the model.")
+                            st.info("💡 Fine-tuning helps restore accuracy after pruning by retraining the model.")
 
                     # Knowledge Distillation Settings
                     if st.session_state.knowledge_distillation:
@@ -302,7 +306,7 @@ if uploaded_file:
                                 "Distillation Epochs", 1, 20, st.session_state.distillation_epochs
                             )
 
-                            st.info("Knowledge distillation transfers knowledge from a larger teacher model to your pruned model.")
+                            st.info("💡 Knowledge distillation transfers knowledge from a larger teacher model to your pruned model.")
 
                     # Quantization settings
                     if st.session_state.quantization:
@@ -318,11 +322,11 @@ if uploaded_file:
                             
                             # Add descriptions for each quantization type
                             if st.session_state.quantization_type == "int8":
-                                st.info("INT8: Maximum size reduction. Converts weights and activations to 8-bit integers.")
+                                st.info("💡 Maximum size reduction. Converts weights and activations to 8-bit integers.")
                             elif st.session_state.quantization_type == "float16":
-                                st.info("FLOAT16: Good balance between size and accuracy. Uses 16-bit floating point values.")
+                                st.info("💡 Good balance between size and accuracy. Uses 16-bit floating point values.")
                             elif st.session_state.quantization_type == "dynamic":
-                                st.info("DYNAMIC: Best accuracy preservation. Dynamic range quantization at runtime.")
+                                st.info("💡 Best accuracy preservation. Dynamic range quantization at runtime.")
                 else:
                     st.info("Please select optimization methods in the Advanced tab to configure parameters.")
 
