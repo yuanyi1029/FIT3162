@@ -159,6 +159,10 @@ if uploaded_file:
     with st.container():
         st.markdown("<div class='optimization-section'>", unsafe_allow_html=True)
         
+        # Initialize block_pruning_ratios at the top level for both Basic and Advanced modes
+        blocks = identify_model_blocks(model)
+        block_pruning_ratios = {}
+        
         # Advanced Options for fine-tuning the optimization - only show when Advanced tab is selected
         if st.session_state.adv_tab_selected:
             with st.expander("Optimization Parameters", expanded=True):
@@ -191,10 +195,7 @@ if uploaded_file:
                     # Block pruning settings
                     if st.session_state.block_pruning:
                         with param_tabs[tab_indices["Block Pruning"]]:
-                            blocks = identify_model_blocks(model)
-                            
                             use_same_ratio = st.checkbox("Use same pruning ratio for all blocks", value=True)
-                            block_pruning_ratios = {}
                             
                             if use_same_ratio:
                                 if 'block_pruning_ratio' not in st.session_state:
@@ -296,6 +297,12 @@ if uploaded_file:
                 else:
                     st.info("Please select optimization methods in the Advanced tab to configure parameters.")
         
+        # For Basic mode, set the block_pruning_ratios using the global block_pruning_ratio
+        elif st.session_state.block_pruning:
+            # Apply the same ratio to all blocks
+            for block in blocks:
+                block_pruning_ratios[block] = st.session_state.block_pruning_ratio
+        
         st.markdown("</div>", unsafe_allow_html=True)
         
         # Process the model
@@ -361,6 +368,13 @@ if uploaded_file:
                         # Apply knowledge distillation if selected
                         if st.session_state.knowledge_distillation:
                             status_text.text("Applying knowledge distillation...")
+                            
+                            # Initialize teacher_model_file to avoid NameError
+                            teacher_model_file = None
+                            
+                            # Check for teacher model in session state or widgets
+                            if 'teacher_model' in st.session_state:
+                                teacher_model_file = st.session_state.teacher_model
                             
                             if not teacher_model_file:
                                 st.error("Teacher model file not uploaded, but Knowledge Distillation was selected.")
@@ -547,10 +561,10 @@ else:
         st.markdown("""
         This tool helps you optimize deep learning models for deployment on resource-constrained devices. It provides:
         
-        - 🔄 **Block and Channel Pruning**: Remove unnecessary parts of your model
-        - 🎯 **Knowledge Distillation**: Transfer knowledge from a larger teacher model
-        - 📊 **Quantization**: Convert to smaller numerical formats
-        - ⚡ **Fine-tuning**: Restore accuracy after optimization
+        - **Block and Channel Pruning**: Remove unnecessary parts of your model
+        -  **Knowledge Distillation**: Transfer knowledge from a larger teacher model
+        - **Quantization**: Convert to smaller numerical formats
+        - **Fine-tuning**: Restore accuracy after optimization
         
         Start by uploading your PyTorch model in the sidebar.
         """)
