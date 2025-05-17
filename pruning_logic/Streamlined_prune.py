@@ -127,19 +127,7 @@ def prune_multiple_blocks(model, target_blocks_dict, fine_tune_epochs=0):
             verbose=True
         )
 
-        #Finetune only if block was pruned (ratio>0) and fine_tune_epochs>0
-        if fine_tune_epochs > 0 and pruning_ratio>0:
-            pruned_block_model = finetune_model(
-                model=pruned_block_model,
-                train_loader=train_loader,
-                val_loader=val_loader,
-                device=device,
-                num_epochs = fine_tune_epochs
-            )
-        
-
     return pruned_block_model
-
 
 
 #Sort model channels 
