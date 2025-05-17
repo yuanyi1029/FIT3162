@@ -332,10 +332,13 @@ if uploaded_file:
                         # Initialize the model to be optimized
                         current_model = model
                         progress_value = 0
-                        progress_increment = 100 / (sum([st.session_state.block_pruning, 
-                                                        st.session_state.channel_pruning, 
-                                                        st.session_state.knowledge_distillation, 
-                                                        st.session_state.quantization]) or 1)
+                        progress_value = 0
+                        completed_steps = 0
+                        selected_steps = sum([
+                            (st.session_state.block_pruning or st.session_state.channel_pruning),  # Pruning is one combined step
+                            st.session_state.knowledge_distillation,
+                            st.session_state.quantization
+                        ]) or 1  # Avoid division by zero
 
                         # Determine pruning type
                         pruning_type = ""
@@ -360,7 +363,8 @@ if uploaded_file:
                                 type=pruning_type
                             )
                             
-                            progress_value += progress_increment
+                            completed_steps += 1
+                            progress_value = int((completed_steps / selected_steps) * 100)
                             progress_bar.progress(min(progress_value / 100, 1.0))
 
                         distilled_model = current_model
@@ -413,7 +417,8 @@ if uploaded_file:
                                 if os.path.exists(teacher_model_path_tmp):
                                     os.unlink(teacher_model_path_tmp)
                             
-                            progress_value += progress_increment
+                            completed_steps += 1
+                            progress_value = int((completed_steps / selected_steps) * 100)
                             progress_bar.progress(min(progress_value / 100, 1.0))
 
                         # Save the pruned model
@@ -456,8 +461,9 @@ if uploaded_file:
                                 st.error(f"Error during quantization: {str(e)}")
                                 quantized_model_path = None
                             
-                            progress_value += progress_increment
-                            progress_bar.progress(1.0)
+                            completed_steps += 1
+                            progress_value = int((completed_steps / selected_steps) * 100)
+                            progress_bar.progress(min(progress_value / 100, 1.0))
 
                         # Complete
                         status_text.text("Optimization complete!")
