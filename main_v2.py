@@ -271,7 +271,12 @@ if uploaded_file:
                     if st.session_state.knowledge_distillation:
                         with param_tabs[tab_indices["Knowledge Distillation"]]:
                             teacher_model_file = st.file_uploader("Upload Teacher Model (.pth)", type=["pth"], key="teacher_model")
-                            distillation_epochs = st.slider("Distillation Epochs", 1, 20, 10)
+                            if 'distillation_epochs' not in st.session_state:
+                                st.session_state.distillation_epochs = 10  # Default value
+
+                            st.session_state.distillation_epochs = st.slider(
+                                "Distillation Epochs", 1, 20, st.session_state.distillation_epochs
+                            )
                             
                             st.info("Knowledge distillation transfers knowledge from a larger teacher model to your pruned model.")
                     
@@ -405,7 +410,7 @@ if uploaded_file:
                                 distilled_model = knowledge_distillation_prune(
                                     teacher_model=teacher_model,
                                     student_model=distilled_model,
-                                    num_epochs=st.session_state.get('distillation_epochs', 5),
+                                    num_epochs=st.session_state.distillation_epochs,
                                     device=DEVICE
                                 )
                                 
