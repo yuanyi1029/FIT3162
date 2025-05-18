@@ -408,6 +408,8 @@ if uploaded_file:
                         progress_value = int((completed_steps / selected_steps) * 100)
                         progress_bar.progress(min(progress_value / 100, 1.0))
 
+                        st.success("Pruning complete.")
+
                     distilled_model = current_model
 
                     # Apply knowledge distillation if selected
@@ -416,9 +418,6 @@ if uploaded_file:
 
                         # teacher_model_file is already validated above
                         teacher_model_file = st.session_state.get('teacher_model_uploader')
-
-
-                        st.write(f"Starting Knowledge Distillation for {st.session_state.get('distillation_epochs', 5)} epochs...")
 
                         # Load teacher model
                         teacher_model_path_tmp = ""
@@ -500,6 +499,9 @@ if uploaded_file:
 
                             # Calculate size of quantized model
                             quantized_size = get_tflite_model_size(quantized_model_path)
+
+                            st.success("Quantization complete.")
+
                         except Exception as e:
                             st.error(f"Error during quantization: {str(e)}")
                             quantized_model_path = None # Ensure quantized_model_path is None on failure
@@ -622,4 +624,15 @@ else:
     # Display prompt when no model is uploaded 
     st.markdown("<div class='optimization-section'>", unsafe_allow_html=True)
     st.info("👈 Please upload a PyTorch model (.pth) using the file uploader in the sidebar to get started.")
-    st.markdown("</div>", unsafe_allow_html=True)
+    # Application information
+
+    with st.expander("About Model Optimizer", expanded=True):
+        st.markdown("""
+        This tool helps you optimize deep learning models for deployment on resource-constrained devices. It provides:
+        - **Block and Channel Pruning**: Remove unnecessary parts of your model
+        - **Knowledge Distillation**: Transfer knowledge from a larger teacher model
+        - **Quantization**: Convert to smaller numerical formats
+        - **Fine-tuning**: Restore accuracy after optimization
+                    
+        Start by uploading your PyTorch model in the sidebar.
+        """)
