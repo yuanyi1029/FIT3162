@@ -10,7 +10,7 @@ import random
 import torch
 import torchvision.transforms as transforms
 from torchvision import datasets, transforms
-from torch.utils.data import DataLoader, Subset, random_split
+from torch.utils.data import DataLoader, Subset, random_split, TensorDataset
 import torch.optim as optim
 import pandas as pd 
 from torch import nn
@@ -108,6 +108,7 @@ def prepare_dataloaders(data_dir, image_size=96, batch_size=32, seed=42):
 train_loader, val_loader, test_loader = prepare_dataloaders("person_detection_validation")
 
 
+
 def prune_multiple_blocks(model, target_blocks_dict, fine_tune_epochs=0):
     pruned_block_model = copy.deepcopy(model)
  
@@ -182,7 +183,26 @@ def main_pruning_loop(model, block_level_dict, uniform_pruning_ratio, block_fine
 
 
 def main_finetune_model(model, epochs, device):
-    return finetune_model(model, train_loader, val_loader, device, lr=1e-4, weight_decay=3e-5, num_epochs=epochs,patience=epochs)
+
+    # Get one batch from the original train_loader
+    images, labels = next(iter(train_loader))
+
+    # Wrap the batch into a new TensorDataset
+    one_batch_dataset = TensorDataset(images, labels)
+
+    # Create a new DataLoader that returns only this one batch
+    one_batch_loader = DataLoader(one_batch_dataset, batch_size=len(images), shuffle=False)
+    return finetune_model(model, one_batch_loader, val_loader, device, lr=1e-4, weight_decay=3e-5, num_epochs=epochs,patience=epochs)
 
 def knowledge_distillation_prune(teacher_model, student_model, num_epochs, device):
-    return run_distillation(teacher_model, student_model, train_loader, num_epochs, device)
+    
+    # Get one batch from the original train_loader
+    images, labels = next(iter(train_loader))
+
+    # Wrap the batch into a new TensorDataset
+    one_batch_dataset = TensorDataset(images, labels)
+
+    # Create a new DataLoader that returns only this one batch
+    one_batch_loader = DataLoader(one_batch_dataset, batch_size=len(images), shuffle=False)
+
+    return run_distillation(teacher_model, student_model, one_batch_loader, num_epochs, device)
