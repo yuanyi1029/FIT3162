@@ -22,7 +22,6 @@ from pruning_logic.Streamlined_prune import (
     prepare_dataloaders,
     prune_multiple_blocks,
     uniform_prune_and_depthwise_collapse,
-    test_model,
     main_pruning_loop,
     main_finetune_model,
     knowledge_distillation_prune,
@@ -322,6 +321,8 @@ class TestEndToEndPruning(unittest.TestCase):
     
     @patch('pruning_logic.Streamlined_prune.evaluate')
     def test_test_model(self, mock_evaluate):
+        from pruning_logic.Streamlined_prune import test_model 
+
         """Test the test_model function."""
         # Setup mock test_loader to return a couple of batches
         mock_batch1 = (torch.randn(4, 1, 96, 96), torch.randint(0, 2, (4,)))

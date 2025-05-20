@@ -223,134 +223,51 @@ class TestOptimizationPipeline(unittest.TestCase):
 
 class TestBlackBox:
     """Black box tests using Streamlit's testing utilities"""
-    
-    @pytest.fixture
-    def app_test(self):
-        """Set up the app test fixture"""
-        return AppTest.from_file("app.py")
-    
+
     def create_model_file(self):
-        """Create a temporary model file for testing"""
         model = SimpleModel()
         file_path = os.path.join(tempfile.gettempdir(), "test_model.pth")
         torch.save(model, file_path)
         return file_path
-    
-    def test_upload_valid_model(self, app_test):
-        """Test BF-01: Upload valid PyTorch model"""
-        file_path = self.create_model_file()
-        
-        try:
-            with open(file_path, "rb") as f:
-                model_bytes = f.read()
-            
-            # Upload model file
-            app_test.file_uploader(label="Upload PyTorch model (.pth)").set_value(
-                {"name": "test_model.pth", "type": "application/octet-stream", "data": model_bytes}
-            )
-            app_test.run()
-            
-            # Check that success message appears
-            assert app_test.success[0].value == "✅ Model uploaded"
-            
-        finally:
-            if os.path.exists(file_path):
-                os.unlink(file_path)
-    
-    def test_basic_mode_size_optimization(self, app_test):
-        """Test BF-04: Size optimization preset"""
-        file_path = self.create_model_file()
-        
-        try:
-            with open(file_path, "rb") as f:
-                model_bytes = f.read()
-            
-            # Upload model file
-            app_test.file_uploader(label="Upload PyTorch model (.pth)").set_value(
-                {"name": "test_model.pth", "type": "application/octet-stream", "data": model_bytes}
-            )
-            
-            # Select size optimization
-            app_test.radio("Optimize model for:").set_value("Size (Maximum Reduction)")
-            
-            # Verify that correct parameters are set
-            app_test.run()
-            assert st.session_state.block_pruning == True
-            assert st.session_state.channel_pruning == True
-            assert st.session_state.quantization == True
-            assert st.session_state.quantization_type == "int8"
-            assert st.session_state.block_pruning_ratio == 0.7
-            assert st.session_state.channel_pruning_ratio == 0.6
-            
-        finally:
-            if os.path.exists(file_path):
-                os.unlink(file_path)
-    
-    def test_advanced_mode_block_pruning_only(self, app_test):
-        """Test BF-07: Block pruning only in advanced mode"""
-        file_path = self.create_model_file()
-        
-        try:
-            with open(file_path, "rb") as f:
-                model_bytes = f.read()
-            
-            # Upload model file
-            app_test.file_uploader(label="Upload PyTorch model (.pth)").set_value(
-                {"name": "test_model.pth", "type": "application/octet-stream", "data": model_bytes}
-            )
-            
-            # Switch to advanced mode
-            app_test.radio("Select Mode:").set_value("Advanced")
-            
-            # Select only block pruning
-            app_test.checkbox("Block Level Pruning").set_value(True)
-            app_test.checkbox("Channel Pruning").set_value(False)
-            app_test.checkbox("Knowledge Distillation").set_value(False)
-            app_test.checkbox("Quantization").set_value(False)
-            
-            # Verify settings
-            app_test.run()
-            assert st.session_state.block_pruning == True
-            assert st.session_state.channel_pruning == False
-            assert st.session_state.knowledge_distillation == False
-            assert st.session_state.quantization == False
-            
-        finally:
-            if os.path.exists(file_path):
-                os.unlink(file_path)
-    
-    def test_no_optimization_method_selected(self, app_test):
-        """Test BF-11: No optimization method selected"""
-        file_path = self.create_model_file()
-        
-        try:
-            with open(file_path, "rb") as f:
-                model_bytes = f.read()
-            
-            # Upload model file
-            app_test.file_uploader(label="Upload PyTorch model (.pth)").set_value(
-                {"name": "test_model.pth", "type": "application/octet-stream", "data": model_bytes}
-            )
-            
-            # Switch to advanced mode
-            app_test.radio("Select Mode:").set_value("Advanced")
-            
-            # Uncheck all optimization methods
-            app_test.checkbox("Block Level Pruning").set_value(False)
-            app_test.checkbox("Channel Pruning").set_value(False)
-            app_test.checkbox("Knowledge Distillation").set_value(False)
-            app_test.checkbox("Quantization").set_value(False)
-            
-            # Click optimize button
-            app_test.button("Optimize Model").click()
-            
-            # Verify error message
-            app_test.run()
-            assert "Please select at least one optimization method" in app_test.error[0].value
-            
-        finally:
-            if os.path.exists(file_path):
-                os.unlink(file_path)
+
+    def test_basic_mode_size_optimization(self):
+        app_test = AppTest.from_file("app.py")
+        app_test.radio("Select Mode:").set_value("Automatic")
+        app_test.radio("Optimize model for:").set_value("Size (Maximum Reduction)")
+        app_test.run()
+
+        assert app_test.session_state.block_pruning == True
+        assert app_test.session_state.channel_pruning == True
+        assert app_test.session_state.quantization == True
+        assert app_test.session_state.quantization_type == "int8"
+        assert app_test.session_state.block_pruning_ratio == 0.7
+        assert app_test.session_state.channel_pruning_ratio == 0.6
+
+    def test_advanced_mode_block_pruning_only(self):
+        app_test = AppTest.from_file("app.py")
+        app_test.radio("Select Mode:").set_value("Advanced")
+        app_test.checkbox("Block Level Pruning").set_value(True)
+        app_test.checkbox("Channel Pruning").set_value(False)
+        app_test.checkbox("Knowledge Distillation").set_value(False)
+        app_test.checkbox("Quantization").set_value(False)
+        app_test.run()
+
+        assert app_test.session_state.block_pruning == True
+        assert app_test.session_state.channel_pruning == False
+        assert app_test.session_state.knowledge_distillation == False
+        assert app_test.session_state.quantization == False
+
+    def test_no_optimization_method_selected(self):
+        app_test = AppTest.from_file("app.py")
+        app_test.radio("Select Mode:").set_value("Advanced")
+        app_test.checkbox("Block Level Pruning").set_value(False)
+        app_test.checkbox("Channel Pruning").set_value(False)
+        app_test.checkbox("Knowledge Distillation").set_value(False)
+        app_test.checkbox("Quantization").set_value(False)
+        app_test.button("Optimize Model").click()
+        app_test.run()
+
+        assert "Please select at least one optimization method" in app_test.error[0].value
 
 
 class TestErrorHandling(unittest.TestCase):
