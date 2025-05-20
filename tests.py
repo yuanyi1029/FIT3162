@@ -85,35 +85,49 @@ class TestUIComponents(unittest.TestCase):
     
     def test_identify_model_blocks_valid(self):
         """Test UT-01: identify_model_blocks with valid model"""
+        print("Testing identify_model_blocks with valid model...")
         model = SimpleModel(num_blocks=3)
         blocks = identify_model_blocks(model)
         self.assertEqual(len(blocks), 3)
         self.assertEqual(blocks, ['blocks.0', 'blocks.1', 'blocks.2'])
+
+        print("Testing identify_model_blocks with valid model correctly identified blocks.")
     
     def test_identify_model_blocks_empty(self):
         """Test UT-02: identify_model_blocks with model without blocks"""
+        print("Testing identify_model_blocks with model without blocks...")
         model = NoBlocksModel()
         blocks = identify_model_blocks(model)
         self.assertEqual(blocks, [])
+
+        print("Testing identify_model_blocks with model without blocks correctly identified no blocks.")
     
     def test_identify_model_blocks_exception(self):
         """Test UT-03: identify_model_blocks with invalid model"""
+        print("Testing identify_model_blocks with None as model...")
         # Test with None as model which should raise an exception internally
         blocks = identify_model_blocks(None)
         self.assertEqual(blocks, [])
+
+        print("Testing identify_model_blocks with None as model correctly identified no blocks.")
     
     def test_identify_model_blocks_complex(self):
         """Test with a more complex model structure"""
+        print("Testing identify_model_blocks with complex model structure...")
         model = ComplexModel()
         blocks = identify_model_blocks(model)
         self.assertEqual(len(blocks), 2)
         self.assertEqual(blocks, ['blocks.0', 'blocks.1'])
+
+        print("Testing identify_model_blocks with complex model structure correctly identified blocks.")
 
 class TestSessionState(unittest.TestCase):
     """Tests for session state management"""
 
     def test_session_state_initialization(self):
         """Test UT-04: Session state initialization"""
+
+        print("Testing session state initialization...")
         # Simulate the behavior of session state
         with patch.dict(st.session_state, {}, clear=True):
             # Simulate sidebar interaction that initializes session state
@@ -128,6 +142,8 @@ class TestSessionState(unittest.TestCase):
                     # Now perform assertions
                     self.assertIn('previous_mode', st.session_state)
                     self.assertEqual(st.session_state.previous_mode, "Basic")
+
+                    print("Session state initialized correctly.")
 
 
 class MockOptimization:
@@ -282,6 +298,8 @@ class TestErrorHandling(unittest.TestCase):
     
     def test_cleanup_temp_files(self):
         """Test IT-11: Temporary file cleanup"""
+        print("Testing cleanup of temp files...")
+
         # Create a temp file
         temp_file = tempfile.NamedTemporaryFile(delete=False)
         file_path = temp_file.name
@@ -297,6 +315,8 @@ class TestErrorHandling(unittest.TestCase):
             
             # Verify file was deleted
             self.assertFalse(os.path.exists(file_path))
+
+            print("Temp file cleanup test passed.")
         finally:
             # Clean up in case test fails
             if os.path.exists(file_path):
@@ -305,8 +325,10 @@ class TestErrorHandling(unittest.TestCase):
 
 class TestPerformance:
     """Performance tests"""
-    
+
     def test_model_optimization_time(self):
+        print("Testing model optimization time...")
+
         """Test BP-02: Measure optimization process duration"""
         # Create a simple model
         model = SimpleModel()
@@ -349,6 +371,8 @@ class TestPerformance:
             # The mock functions are very fast, so this is just a placeholder
             # In real tests, you'd set an appropriate threshold
             assert duration < 5.0, f"Optimization took too long: {duration} seconds"
+
+            print(f"Model optimization time test passed. Duration: {duration} seconds")
             
         finally:
             # Clean up temporary files
