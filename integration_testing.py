@@ -299,9 +299,9 @@ class TestOptimizationMetrics(unittest.TestCase):
         # if os.path.exists(self.pruned_model_path): os.unlink(self.pruned_model_path)
         pass
 
-    @patch('pruning_logic.Pruning_definitions.get_model_size') # Assuming this path
-    @patch('mcunet.utils.pytorch_utils.count_net_flops')      # Assuming this path
-    @patch('mcunet.utils.pytorch_utils.count_peak_activation_size') # Assuming this path
+    @patch('pruning_logic.Pruning_definitions.get_model_size')
+    @patch('mcunet.utils.pytorch_utils.count_net_flops')    
+    @patch('mcunet.utils.pytorch_utils.count_peak_activation_size') 
     def test_model_size_calculation(self, mock_count_peak, mock_count_flops, mock_get_model_size):
         print(f"\n--- Test: {self.id()} ---")
         print("Logic: Test calculation of model size, FLOPs, peak activation, and their reduction percentages.")
@@ -318,7 +318,7 @@ class TestOptimizationMetrics(unittest.TestCase):
         mock_count_peak.side_effect = [expected_original_peak, expected_pruned_peak]
         
         actual_original_size = mock_get_model_size(self.model)
-        actual_original_flops = mock_count_flops(self.model, (1, 1, 96, 96)) # Input shape for FLOPs/peak
+        actual_original_flops = mock_count_flops(self.model, (1, 1, 96, 96)) 
         actual_original_peak = mock_count_peak(self.model, (1, 1, 96, 96))
         
         actual_pruned_size = mock_get_model_size(self.pruned_model)
