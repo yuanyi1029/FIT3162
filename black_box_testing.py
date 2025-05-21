@@ -328,12 +328,16 @@ class TestErrorHandling(unittest.TestCase):
     
     def test_cleanup_temp_files(self):
         """Test IT-11: Temporary file cleanup"""
-        print("Testing cleanup of temp files...")
+        print(f"\n--- Test: {self._testMethodName} ---")
+        print("Logic: Test OS-level temporary file creation and deletion.")
+        print("       This test is more about `os.unlink` than the Streamlit app itself, unless the app explicitly handles temp files.")
 
         # Create a temp file
         temp_file = tempfile.NamedTemporaryFile(delete=False)
         file_path = temp_file.name
         temp_file.close()
+
+        print("Expected: A temporary file is created, verified to exist, then deleted, and verified to no longer exist.")
         
         try:
             # Verify file exists
@@ -346,7 +350,7 @@ class TestErrorHandling(unittest.TestCase):
             # Verify file was deleted
             self.assertFalse(os.path.exists(file_path))
 
-            print("Temp file cleanup test passed.")
+            print("Actual (Simulated): Would check os.path.exists() before and after os.unlink().")
         finally:
             # Clean up in case test fails
             if os.path.exists(file_path):
@@ -385,7 +389,10 @@ class TestPerformance(unittest.TestCase):
     """Performance tests"""
 
     def test_model_optimization_time(self):
-        print("Testing model optimization time...")
+
+        print(f"\n--- Test: {self._testMethodName} ---")
+        print("Logic: Measure the execution time of a (mocked) model optimization pipeline.")
+        print("       Includes mocked block pruning and quantization steps.")
 
         """Test BP-02: Measure optimization process duration"""
         # Create a simple model
@@ -407,6 +414,8 @@ class TestPerformance(unittest.TestCase):
             device='cpu',
             type='BLOCK'
         )
+
+        print("Expected: The total duration of these mocked operations is very short (e.g., less than 1.0 second).")
         
         # Quantization
         with tempfile.NamedTemporaryFile(delete=False, suffix='.pth') as tmp_file:
@@ -429,8 +438,7 @@ class TestPerformance(unittest.TestCase):
             # The mock functions are very fast, so this is just a placeholder
             # In real tests, you'd set an appropriate threshold
             self.assertLess(duration, 5.0, f"Optimization took too long: {duration} seconds")
-
-            print(f"Model optimization time test passed. Duration: {duration} seconds")
+            print("Actual (Simulated): Would calculate time.time() difference and assert it's below a threshold.")
             
         finally:
             # Clean up temporary files
