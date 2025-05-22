@@ -100,10 +100,10 @@ class TestUIComponents(unittest.TestCase):
         print(f"\n--- Test: {self.id()} ---")
         print("Logic: Test identify_model_blocks with a model having a 'blocks' nn.ModuleList.")
         model = SimpleModel(num_blocks=3)
-        expected_blocks = []
+        expected_blocks = ['blocks.0', 'blocks.1', 'blocks.2']
         actual_blocks = identify_model_blocks(model)
         print(f"Expected blocks: {expected_blocks}, Actual blocks: {actual_blocks}")
-        self.assertEqual(len(expected_blocks), 0)
+        self.assertEqual(len(expected_blocks), 3)
         self.assertEqual(actual_blocks, expected_blocks)
 
     def test_identify_model_blocks_empty(self):
@@ -131,7 +131,7 @@ class TestUIComponents(unittest.TestCase):
         actual_blocks = identify_model_blocks(model)
         print(f"Expected blocks: {expected_blocks}, Actual blocks: {actual_blocks}")
         self.assertEqual(len(expected_blocks), 2)
-        self.assertEqual(actual_blocks, [])
+        self.assertEqual(actual_blocks, ['blocks.0', 'blocks.1'])
 
 class TestSessionState(unittest.TestCase):
     @patch.dict(st.session_state, {}, clear=True) # Ensure clean session_state for each test
