@@ -1,4 +1,4 @@
-# Setup Guide (Python 3.10)
+# Setup Guide
 
 ## Step 1: Check and Install Python 3.10
 Ensure Python 3.10 is installed on your system:
